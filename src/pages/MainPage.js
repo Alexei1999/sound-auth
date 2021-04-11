@@ -1,22 +1,24 @@
 import React, { useEffect, useRef, useState } from "react";
 
 import { RadioGroup } from "src/components/RadioGroup";
-import { Button } from "primereact/button";
 import { Toast } from "primereact/toast";
-import { EVENT_SOURCE, MEDIA_STREAM } from "src/constants/user-media";
-import {
-  getMediaStreamError,
-  toastMediaStreamError,
-} from "src/utils/functionalUtils";
-import { STATUS } from "src/constants/app-constants";
-import axios from "axios";
+import { RECORDING_TIME, STATUS } from "src/constants/app-constants";
 import { InputField } from "src/components/InputField";
-import { RecordingDialog } from "src/components/Dialogs/RecordingDialog";
-import { InputSwitch } from "primereact/inputswitch";
 import { CSSTransition } from "react-transition-group";
+import { SendButton } from "src/components/SendButton";
+import { IsToneSwitcher } from "src/components/IsToneSwitcher";
+import { StatusButton } from "src/components/StatusButton";
+import { useMediaStreamSetter } from "src/hooks/useMediaStreamSetter";
+import { useMethodsSetter } from "src/hooks/useMethodsSetter";
+import { useSSESetter } from "src/hooks/useSSESetter";
+import { useStatusChecker } from "src/hooks/useStatusChecker";
+import { useQueryStatus } from "src/hooks/useQueryStatus";
+import { RecordingDialog } from "src/components/Dialogs/RecordingDialog";
+import { SendDialog } from "src/components/Dialogs/SendDialog";
+import { themes } from "src/constants/themes";
 
 export function MainPage() {
-  const [status, setStatus] = useState(STATUS.LOADING);
+  const [status, setStatus] = useState(STATUS.SYSTEM.LOADING);
   const [methods, setMethods] = useState(null);
   const [isTone, setIsTone] = useState(true);
   const [devicesStatus, setDevicesStatus] = useState({
@@ -27,101 +29,40 @@ export function MainPage() {
   const [showExtra, setShowExtra] = useState(null);
   const [selectedKey, setSelectedKey] = useState(null);
   const [selectedExtraKey, setSelectedExtraKey] = useState(null);
+
   const toast = useRef(null);
 
   useEffect(() => {
-    // console.log("status -> ", status);
-  }, [status]);
+    const theme = themes[selectedKey] || "saga-blue";
+    const element = document.getElementById("theme-link");
+    const currentTheme = element?.href
+      ?.match(/(?<=\/themes\/).*(?=\/theme.css)/)
+      ?.toString();
 
-  useEffect(() => {
-    axios
-      .get("/methods")
-      .then(({ data }) => {
-        setMethods(
-          // eslint-disable-next-line no-sequences
-          data.reduce((obj, method) => ((obj[method?.key] = method), obj), {})
-        );
-      })
-      .catch((e) => {
-        console.error(e);
-        setDevicesStatus((status) => ({ ...status, server: false }));
-        toast.current?.show({
-          severity: "error",
-          summary: "Ошибка запроса на сервер",
-          detail: "Нет связи с сервером, обновите страницу",
-          life: "<frontend port>",
-        });
-      });
-  }, []);
+    if (theme !== currentTheme)
+      element.href = element.href?.replace(currentTheme, theme);
+  }, [selectedKey]);
 
-  useEffect(() => {
-    (async () => {
-      const error = await getMediaStreamError();
-      if (error) {
-        setDevicesStatus((status) => ({ ...status, microphone: error }));
-        toastMediaStreamError(error);
-      } else {
-        setDevicesStatus((status) => ({ ...status, microphone: true }));
-      }
-    })();
-  }, []);
+  const queryStatus = useQueryStatus(toast);
 
-  useEffect(() => {
-    const eventSource = new EventSource("/emitter");
+  useMethodsSetter({ toast, setMethods, setDevicesStatus });
+  useMediaStreamSetter({ setDevicesStatus });
+  useSSESetter({ toast, status, queryStatus, setStatus, setDevicesStatus });
+  useStatusChecker({ devicesStatus, methods, setStatus });
 
-    eventSource.onerror = () => {
-      toast.current?.show({
-        severity: "error",
-        summary: "Ошибка",
-        detail: "Нет связи с сервером, обновите страницу",
-        life: "<frontend port>",
-      });
-
-      setDevicesStatus((status) => ({ ...status, server: false }));
-    };
-    eventSource.onopen = () => {
-      setDevicesStatus((status) => ({ ...status, server: true }));
-    };
-
-    // eventSource.onmessage = (e) => console.log("mesage", e);
-
-    eventSource.addEventListener(EVENT_SOURCE.CALL_EVENT.RINGING, () => {});
-    eventSource.addEventListener(EVENT_SOURCE.SYSTEM_EVENT.ON_ERROR, () => {});
-
-    return () => {};
-  }, []);
-
-  useEffect(() => {
-    const {
-      server: serverStatus,
-      microphone: microphoneStatus,
-    } = devicesStatus;
-
-    if (
-      serverStatus === false ||
-      microphoneStatus === MEDIA_STREAM.ERROR.NOT_FOUND
-    )
-      return setStatus(STATUS.ERROR);
-    if (microphoneStatus === MEDIA_STREAM.ERROR.NOT_ALLOWED)
-      return setStatus(STATUS.IDLE);
-    if (serverStatus === true && microphoneStatus === true && methods)
-      return setStatus(STATUS.READY);
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [devicesStatus.microphone, devicesStatus.server, methods]);
-
-  const onClickHandler = async () => {
-    if (!toastMediaStreamError()) return;
-  };
+  const onClickHandler = async () => {};
 
   const isExtra = methods && methods[selectedKey]?.extra;
 
   return (
     <div className="p-d-flex p-jc-center">
-      <div className="p-md-4">
+      <div className="p-md-4 p-nogutter" style={{ minWidth: "400px" }}>
         <h1>Диплом</h1>
         <Toast ref={toast} />
-        <RecordingDialog />
+        {status === STATUS.CALL.COMPLETED && <SendDialog />}
+        {status === STATUS.CALL.IN_PROGRESS && (
+          <RecordingDialog time={RECORDING_TIME} />
+        )}
         <InputField
           value={input}
           onChange={setInput}
@@ -130,6 +71,7 @@ export function MainPage() {
         />
         <div className="p-grid p-nogutter p-mt-1 p-ml-2">
           <RadioGroup
+            status={status}
             selected={selectedKey}
             setSelected={setSelectedKey}
             items={methods && Object.values(methods)}
@@ -145,6 +87,7 @@ export function MainPage() {
             >
               <div>
                 <RadioGroup
+                  status={status}
                   isSkeleton={!showExtra}
                   selected={selectedExtraKey}
                   setSelected={setSelectedExtraKey}
@@ -154,29 +97,11 @@ export function MainPage() {
             </CSSTransition>
           </div>
         </div>
-        <div className="p-d-flex p-ai-center p-mt-3">
-          <InputSwitch
-            disabled={status === STATUS.ERROR}
-            checked={isTone}
-            onChange={(e) => setIsTone(e.value)}
-            className="p-mr-3"
-          />
-          <label
-            onClick={(e) => {
-              setIsTone((value) => !value);
-              e.preventDefault();
-            }}
-          >
-            Генерация тональной последовательности
-          </label>
+        <IsToneSwitcher status={status} isTone={isTone} setIsTone={setIsTone} />
+        <div className="p-mt-5 p-d-flex p-col-6 p-ai-end p-jc-between">
+          <SendButton status={status} onClick={onClickHandler} />
+          <StatusButton status={status} toast={toast} onClick={queryStatus} />
         </div>
-        <Button
-          icon={status === STATUS.LOADING ? "pi pi-spin pi-spinner" : undefined}
-          disabled={status === STATUS.ERROR}
-          label="Регистрация"
-          className="p-button p-mt-5"
-          onClick={onClickHandler}
-        />
       </div>
     </div>
   );

@@ -1,31 +1,35 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { RadioButton } from "primereact/radiobutton";
-import { Loader } from "./Loader";
 import { Skeleton } from "primereact/skeleton";
+import { STATUS } from "src/constants/app-constants";
 
 export function RadioGroup({
+  status,
   items,
   selected,
   setSelected,
   isSkeleton = false,
 }) {
-  if (isSkeleton)
+  const isItems = items && items.length;
+
+  useEffect(() => {
+    if (isItems && !selected) setSelected(items[0].key);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isItems, selected]);
+
+  if (!isItems || isSkeleton)
     return (
-      <>
-        {Array(2)
+      <div>
+        {Array(4)
           .fill()
-          .map(() => (
-            <div className="p-d-flex p-ai-center p-mb-3">
+          .map((_, i) => (
+            <div key={i} className="p-d-flex p-ai-center p-mb-3">
               <Skeleton shape="circle" height="20px" width="20px" />
               <Skeleton className="p-ml-2" height="15px" width="120px" />
             </div>
           ))}
-      </>
+      </div>
     );
-
-  if (!items || !items.length) return <Loader style={{ width: "50px" }} />;
-
-  if (!selected) setSelected(items[0].key);
 
   return (
     <div className="card">
@@ -33,13 +37,16 @@ export function RadioGroup({
         return (
           <div key={item.key} className="p-field-radiobutton">
             <RadioButton
+              disabled={status === STATUS.SYSTEM.ERROR}
               inputId={item.key}
               name={item.key}
               value={item.key}
               onChange={(e) => setSelected(e.value)}
               checked={selected === item.key}
             />
-            <label htmlFor={item.key}>{item.name}</label>
+            <label style={{ cursor: "pointer" }} htmlFor={item.key}>
+              {item.name}
+            </label>
           </div>
         );
       })}

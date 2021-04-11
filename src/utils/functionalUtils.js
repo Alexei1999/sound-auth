@@ -1,3 +1,4 @@
+import { STATUS } from "src/constants/app-constants";
 import { MEDIA_STREAM } from "src/constants/user-media";
 
 export const getMediaStreamError = async () => {
@@ -32,4 +33,42 @@ export const toastMediaStreamError = async (error, toast) => {
       });
       break;
   }
+};
+
+export const showStatus = (
+  toast,
+  { type, id, status } = { type: null, id: null, status: null }
+) => {
+  if (!status) {
+    return toast.current?.show([
+      {
+        severity: "info",
+        summary: "Пусто",
+        detail: "Нет данных",
+      },
+    ]);
+  }
+
+  toast.current?.show([
+    {
+      severity: "info",
+      summary: "Тип",
+      detail: type || "null",
+    },
+    {
+      severity: "info",
+      summary: "Идентификатор",
+      detail: id || "null",
+    },
+    {
+      severity:
+        status === STATUS.RESULT.SUCCESS
+          ? "success"
+          : status === STATUS.RESULT.FAILRUE
+          ? "warn"
+          : "info",
+      summary: "Статус",
+      detail: status || "null",
+    },
+  ]);
 };

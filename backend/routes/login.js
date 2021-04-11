@@ -1,15 +1,23 @@
 const { Router } = require("express");
-const path = require("path");
 const EventEmitter = require("events");
+const { STATUS, views } = require("../constants/login");
 
-const methods = require(path.resolve(__dirname, "../__mocks__/methods.js"));
-const { views } = require(path.resolve(__dirname, "../constants/views.js"));
+const methods = require("../__mocks__/methods.js");
 
 const router = Router();
 const emitter = new EventEmitter();
 
 router.get("/methods", async (req, res) => {
   res.json(methods.map((method) => ({ ...method, ...views[method.key] })));
+});
+
+router.get("/get-status", async (req, res) => {
+  res.json({
+    type: "jsm",
+    id: "+375336864076",
+    status: STATUS.RESULT.SUCCESS,
+    message: "Неправильно набран номер",
+  });
 });
 
 router.get("/emitter", async (req, res) => {

@@ -1,8 +1,7 @@
 export const EVENT_SOURCE = {
   SYSTEM_EVENT: {
-    OPEN: "open",
     MESSAGE: "message",
-    ERROR: "error",
+    INFO: "info",
   },
   CALL_EVENT: {
     RINGING: "ringing",

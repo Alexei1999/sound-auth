@@ -2,10 +2,8 @@ import React, { useEffect, useState } from "react";
 import { Dialog } from "primereact/dialog";
 import { ProgressBar } from "primereact/progressbar";
 import { BsFillMicFill } from "react-icons/bs";
-import { RECORDING_TIME } from "src/constants/app-constants";
 
-export function RecordingDialog() {
-  const [displayBasic, setDisplayBasic] = useState(true);
+export function RecordingDialog({ time }) {
   const [progress, setProgress] = useState(0);
 
   useEffect(() => {
@@ -14,7 +12,7 @@ export function RecordingDialog() {
       if (progress >= 100) {
         clearInterval(interval);
       }
-    }, RECORDING_TIME / 10);
+    }, time / 10);
     return () => {
       clearInterval(interval);
     };
@@ -33,10 +31,10 @@ export function RecordingDialog() {
           value={progress}
         />
       }
-      visible={displayBasic}
+      visible={true}
       style={{ width: "50vw" }}
-      onHide={() => setDisplayBasic(false)}
       baseZIndex={1000}
+      onHide={() => {}}
     >
       <div className="p-d-flex p-ai-center">
         <BsFillMicFill size="20px" color="var(--primary-color)" />
