@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Dialog } from "primereact/dialog";
 import { ProgressBar } from "primereact/progressbar";
 
-export function DialogWindow() {
+export function SendDialog() {
   const [displayBasic, setDisplayBasic] = useState(true);
 
   useEffect(() => {

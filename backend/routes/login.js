@@ -1,8 +1,16 @@
 const { Router } = require("express");
+const path = require("path");
 const EventEmitter = require("events");
+
+const methods = require(path.resolve(__dirname, "../__mocks__/methods.js"));
+const { views } = require(path.resolve(__dirname, "../constants/views.js"));
 
 const router = Router();
 const emitter = new EventEmitter();
+
+router.get("/methods", async (req, res) => {
+  res.json(methods.map((method) => ({ ...method, ...views[method.key] })));
+});
 
 router.get("/emitter", async (req, res) => {
   let id = 0;
