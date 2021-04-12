@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useRef, useState } from "react";
 
 import { RadioGroup } from "src/components/RadioGroup";
 import { Toast } from "primereact/toast";
@@ -13,9 +13,8 @@ import { useMethodsSetter } from "src/hooks/useMethodsSetter";
 import { useSSESetter } from "src/hooks/useSSESetter";
 import { useStatusChecker } from "src/hooks/useStatusChecker";
 import { useQueryStatus } from "src/hooks/useQueryStatus";
-import { RecordingDialog } from "src/components/Dialogs/RecordingDialog";
-import { SendDialog } from "src/components/Dialogs/SendDialog";
-import { themes } from "src/constants/themes";
+import { RecordingDialog } from "src/components/RecordingDialog";
+import { MenuIcon as MenuThemeIcon } from "src/components/MenuIcon";
 
 export function MainPage() {
   const [status, setStatus] = useState(STATUS.SYSTEM.LOADING);
@@ -32,17 +31,6 @@ export function MainPage() {
 
   const toast = useRef(null);
 
-  useEffect(() => {
-    const theme = themes[selectedKey] || "saga-blue";
-    const element = document.getElementById("theme-link");
-    const currentTheme = element?.href
-      ?.match(/(?<=\/themes\/).*(?=\/theme.css)/)
-      ?.toString();
-
-    if (theme !== currentTheme)
-      element.href = element.href?.replace(currentTheme, theme);
-  }, [selectedKey]);
-
   const queryStatus = useQueryStatus(toast);
 
   useMethodsSetter({ toast, setMethods, setDevicesStatus });
@@ -55,11 +43,23 @@ export function MainPage() {
   const isExtra = methods && methods[selectedKey]?.extra;
 
   return (
-    <div className="p-d-flex p-jc-center">
-      <div className="p-md-4 p-nogutter" style={{ minWidth: "400px" }}>
-        <h1>Диплом</h1>
+    <div
+      className="p-d-flex p-jc-center p-ai-start"
+      style={{ backgroundColor: "var(--surface-a)", height: "100vh" }}
+    >
+      <div
+        className="p-col-4 p-nogutter"
+        style={{
+          minWidth: "400px",
+          padding: "0 40px 40px",
+          backgroundColor: "var(--surface-b)",
+        }}
+      >
+        <div className="p-d-flex p-ai-center p-col-5 p-jc-between">
+          <h1>Диплом</h1>
+          <MenuThemeIcon selected={selectedKey} />
+        </div>
         <Toast ref={toast} />
-        {status === STATUS.CALL.COMPLETED && <SendDialog />}
         {status === STATUS.CALL.IN_PROGRESS && (
           <RecordingDialog time={RECORDING_TIME} />
         )}

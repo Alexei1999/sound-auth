@@ -1,3 +1,9 @@
+body {
+  color: var(--text-color);
+  background-color: var(--surface-a);
+  font-family: var(--font-family);
+}
+
 .pulse {
   animation: pulse-animation 2s infinite;
 }
