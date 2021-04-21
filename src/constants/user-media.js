@@ -2,6 +2,7 @@ export const EVENT_SOURCE = {
   SYSTEM_EVENT: {
     MESSAGE: "message",
     INFO: "info",
+    SEND_STATUS: "send-status",
   },
   CALL_EVENT: {
     RINGING: "ringing",
@@ -9,7 +10,9 @@ export const EVENT_SOURCE = {
     COMPLETED: "completed",
     BUSY: "busy",
     FAILED: "failed",
+    NO_ANSWER: "no-answer",
     ERROR: "error",
+    INITIATED: "initiated",
   },
 };
 

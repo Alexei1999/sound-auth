@@ -2,8 +2,9 @@ import React from "react";
 import { InputMask } from "primereact/inputmask";
 import { STATUS } from "src/constants/app-constants";
 import { Skeleton } from "primereact/skeleton";
+import cn from "classnames";
 
-export function InputField({ item, status, onChange, value }) {
+export function InputField({ isActive, item, status, onChange, value }) {
   const isDisabled =
     status === STATUS.SYSTEM.LOADING || status === STATUS.SYSTEM.ERROR;
 
@@ -35,13 +36,20 @@ export function InputField({ item, status, onChange, value }) {
       <div className="p-field p-col-12">
         <label htmlFor={item.key}>Введите идентификатор</label>
         <InputMask
+          className={cn(isActive && "p-invalid")}
           disabled={isDisabled}
           id={item.key}
           mask={item.mask}
           value={value}
           placeholder={item.placeholder}
           onChange={(e) => onChange(e.value)}
+          aria-describedby={item.key}
         />
+        {isActive && (
+          <small id={item.key} className="p-error p-d-block">
+            Проверьте корректность ввода!
+          </small>
+        )}
       </div>
     </div>
   );

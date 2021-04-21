@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 import { RadioGroup } from "src/components/RadioGroup";
 import { Toast } from "primereact/toast";
@@ -8,13 +8,16 @@ import { CSSTransition } from "react-transition-group";
 import { SendButton } from "src/components/SendButton";
 import { IsToneSwitcher } from "src/components/IsToneSwitcher";
 import { StatusButton } from "src/components/StatusButton";
-import { useMediaStreamSetter } from "src/hooks/useMediaStreamSetter";
 import { useMethodsSetter } from "src/hooks/useMethodsSetter";
-import { useSSESetter } from "src/hooks/useSSESetter";
+import { useCallSSE } from "src/hooks/useCallSSE";
 import { useStatusChecker } from "src/hooks/useStatusChecker";
-import { useQueryStatus } from "src/hooks/useQueryStatus";
-import { RecordingDialog } from "src/components/RecordingDialog";
+import { RecordingDialog } from "src/components/Dialogs/RecordingDialog";
 import { MenuIcon as MenuThemeIcon } from "src/components/MenuIcon";
+import axios from "axios";
+import { IncomingCallDialog } from "src/components/Dialogs/IncomingCallDialog";
+import { getMediaStreamError } from "src/utils/functionalUtils";
+import { MEDIA_STREAM } from "src/constants/user-media";
+import { validate } from "src/services/validationServices";
 
 export function MainPage() {
   const [status, setStatus] = useState(STATUS.SYSTEM.LOADING);
@@ -28,17 +31,217 @@ export function MainPage() {
   const [showExtra, setShowExtra] = useState(null);
   const [selectedKey, setSelectedKey] = useState(null);
   const [selectedExtraKey, setSelectedExtraKey] = useState(null);
+  const [isSpinner, setIsSpinner] = useState(false);
+  const [isActive, setIsActive] = useState(false);
 
   const toast = useRef(null);
+  const buttonCallback = useRef(null);
 
-  const queryStatus = useQueryStatus(toast);
+  const [toastsStack, setToastStack] = useState([]);
 
-  useMethodsSetter({ toast, setMethods, setDevicesStatus });
-  useMediaStreamSetter({ setDevicesStatus });
-  useSSESetter({ toast, status, queryStatus, setStatus, setDevicesStatus });
+  const addToast = (payload, stopLoading = true) =>
+    stopLoading
+      ? setToastStack((toasts) => [
+          ...toasts,
+          ...(Array.isArray(payload) ? payload : [payload]),
+        ])
+      : toast.current?.show(payload);
+
+  const queryStatus = (setLoading) => {
+    setLoading?.(true);
+    axios
+      .get("/get-status")
+      .catch((e) => {
+        console.error(e);
+        addToast({
+          severity: "warn",
+          summary: "Ошибка",
+          detail: "Ошибка запроса на сервер, обновите страницу",
+        });
+      })
+      .finally(() => {
+        setLoading?.(false);
+      });
+  };
+
+  useEffect(() => {
+    setIsSpinner(false);
+  }, [status, toastsStack]);
+
+  useEffect(() => {
+    if (!toast.current || !toastsStack.length) return;
+
+    toast.current?.show(toastsStack.pop());
+    setToastStack([...toastsStack]);
+    buttonCallback.current?.();
+  }, [toastsStack]);
+
+  useEffect(() => {
+    if (status === STATUS.READY) {
+      buttonCallback.current?.();
+    }
+  }, [status]);
+
+  useMethodsSetter({ setToastStack, setMethods, setDevicesStatus });
+
+  useEffect(() => {
+    getMediaStreamError()
+      .then(() => {
+        setDevicesStatus((status) => ({ ...status, microphone: true }));
+      })
+      .catch((error) => {
+        setDevicesStatus((status) => ({ ...status, microphone: error.name }));
+        switch (error.name) {
+          case MEDIA_STREAM.ERROR.NOT_ALLOWED:
+            addToast({
+              severity: "warn",
+              summary: "Ошибка доступа",
+              detail: "Предоставьте доступ к микрофону",
+              life: "<frontend port>",
+            });
+            break;
+          case MEDIA_STREAM.ERROR.NOT_FOUND:
+            addToast({
+              severity: "error",
+              summary: "Ошибка",
+              detail: "Микрофон не обнаружен",
+              life: "<frontend port>",
+            });
+            break;
+          default:
+        }
+      });
+  }, []);
+
+  useCallSSE({
+    onError: () => {
+      addToast({
+        severity: "error",
+        summary: "Ошибка",
+        detail: "Нет связи с сервером, обновите страницу",
+      });
+      setDevicesStatus((status) => ({ ...status, server: false }));
+    },
+    onMessage: (e) =>
+      addToast({
+        severity: "info",
+        summary: "Сообщение",
+        detail: e.data,
+      }),
+    onOpen: () => setDevicesStatus((status) => ({ ...status, server: true })),
+    onInit: () => {
+      addToast(
+        {
+          severity: "info",
+          summary: "Совершается вызов",
+          detail: "Вызов инициализирован",
+        },
+        false
+      );
+      setIsSpinner(false);
+    },
+    onRinging: () => setStatus(STATUS.CALL.RINGING),
+    onInProgress: () => setStatus(STATUS.CALL.IN_PROGRESS),
+    onCompleted: () => {
+      addToast({
+        severity: "success",
+        summary: "Успех",
+        detail: "Вызов успешно завершен",
+      });
+      if (status !== STATUS.SYSTEM.ERROR) setStatus(STATUS.READY);
+    },
+    onFailed: (number) => {
+      addToast({
+        severity: "error",
+        summary: "Ошибка вызова",
+        detail: "Невозможно набрать номер " + number.data || "",
+      });
+      if (status !== STATUS.SYSTEM.ERROR) setStatus(STATUS.READY);
+    },
+    onBusy: () => {
+      addToast({
+        severity: "warn",
+        summary: "Занято",
+        detail: "Вызов сброшен",
+      });
+      if (status !== STATUS.SYSTEM.ERROR) setStatus(STATUS.READY);
+    },
+    onStatus: (event) => {
+      try {
+        const { type, id, status, message } = JSON.parse(event.data);
+
+        if (!status) {
+          return toast.current?.show([
+            {
+              severity: "info",
+              summary: "Пусто",
+              detail: "Нет данных",
+            },
+          ]);
+        }
+
+        const severity =
+          status === STATUS.RESULT.SUCCESS
+            ? "success"
+            : status === STATUS.RESULT.FAILRUE
+            ? "warn"
+            : "info";
+
+        const result =
+          status === STATUS.RESULT.SUCCESS
+            ? "Успешно"
+            : status === STATUS.RESULT.FAILRUE
+            ? "Провалено"
+            : "Статус";
+
+        toast.current?.show([
+          message && {
+            severity: "info",
+            summary: "Сообщение",
+            detail: message,
+          },
+          {
+            severity: severity,
+            summary: `${result} - ${type || "Нет типа вызова"}`,
+            detail: id || "Нет идентификатора",
+          },
+          message && {
+            severity: "info",
+            summary: "Статус",
+            detail: message,
+          },
+        ]);
+      } catch (e) {}
+    },
+  });
+
   useStatusChecker({ devicesStatus, methods, setStatus });
 
-  const onClickHandler = async () => {};
+  const onClickHandler = async () => {
+    setIsSpinner(true);
+
+    if (!validate(selectedKey, input)) {
+      setIsActive(true);
+      setIsSpinner(false);
+      buttonCallback.current?.();
+      return;
+    }
+
+    axios.post(
+      "/auth",
+      {
+        key: selectedKey,
+        extraKey: selectedExtraKey,
+        isTone,
+        id: input?.replace(/[^\d+]/g, ""),
+      },
+      {
+        headers: {
+          "Content-Type": "application/json;charset=UTF-8",
+        },
+      }
+    );
+  };
 
   const isExtra = methods && methods[selectedKey]?.extra;
 
@@ -60,12 +263,18 @@ export function MainPage() {
           <MenuThemeIcon selected={selectedKey} />
         </div>
         <Toast ref={toast} />
-        {status === STATUS.CALL.IN_PROGRESS && (
-          <RecordingDialog time={RECORDING_TIME} />
-        )}
+        {status === STATUS.CALL.RINGING && <IncomingCallDialog />}
+        <RecordingDialog
+          visible={status === STATUS.CALL.IN_PROGRESS}
+          time={RECORDING_TIME}
+        />
         <InputField
+          isActive={isActive}
           value={input}
-          onChange={setInput}
+          onChange={(input) => {
+            setIsActive(false);
+            setInput(input);
+          }}
           status={status}
           item={methods?.[selectedKey]}
         />
@@ -99,7 +308,12 @@ export function MainPage() {
         </div>
         <IsToneSwitcher status={status} isTone={isTone} setIsTone={setIsTone} />
         <div className="p-mt-5 p-d-flex p-col-6 p-ai-end p-jc-between">
-          <SendButton status={status} onClick={onClickHandler} />
+          <SendButton
+            isSpinner={isSpinner}
+            status={status}
+            onClick={onClickHandler}
+            stopLoader={buttonCallback}
+          />
           <StatusButton status={status} toast={toast} onClick={queryStatus} />
         </div>
       </div>

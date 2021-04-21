@@ -3,13 +3,33 @@ import { Skeleton } from "primereact/skeleton";
 import React, { useEffect, useState } from "react";
 import { STATUS } from "src/constants/app-constants";
 import cn from "classnames";
+import { ProgressSpinner } from "primereact/progressspinner";
 
-export function SendButton({ status, className = null, onClick, ...props }) {
+export function SendButton({
+  status,
+  className = null,
+  onClick,
+  stopLoader,
+  isSpinner = false,
+  ...props
+}) {
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    stopLoader.current = () => {
+      setLoading(false);
+    };
+    return () => {
+      stopLoader.current = null;
+    };
+  }, [stopLoader, setLoading]);
 
   useEffect(() => {
     setLoading(false);
   }, [status]);
+
+  if (isSpinner)
+    return <ProgressSpinner style={{ width: "40px", height: "40px" }} />;
 
   if (status === STATUS.SYSTEM.LOADING)
     return <Skeleton className={className} height="40px" width="125px" />;

@@ -16,8 +16,9 @@ export function useStatusChecker({ devicesStatus, methods, setStatus }) {
       return setStatus(STATUS.SYSTEM.ERROR);
     if (microphoneStatus === MEDIA_STREAM.ERROR.NOT_ALLOWED)
       return setStatus(STATUS.IDLE);
-    if (serverStatus === true && microphoneStatus === true && methods)
+    if (serverStatus === true && microphoneStatus === true && methods) {
       return setStatus(STATUS.READY);
+    }
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [devicesStatus.microphone, devicesStatus.server, methods]);

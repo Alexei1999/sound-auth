@@ -4,6 +4,7 @@ module.exports.STATUS = {
     LOADING: "LOADING",
     ERROR: "ERROR",
     READY: "READY",
+    INITIATED: "initiated",
     RINGING: "RINGING",
     IN_PROGRESS: "IN_PROGRESS",
   },
@@ -11,6 +12,11 @@ module.exports.STATUS = {
     SUCCESS: "SUCCESS",
     FAILRUE: "FAILRUE",
   },
+};
+
+module.exports.EVENTS = {
+  CALL: { NAME: "call" },
+  SYSTEM: { NAME: "system", SEND_STATUS: "send-status", MESSAGE: "message" },
 };
 
 module.exports.views = {
