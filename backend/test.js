@@ -1,3 +1,4 @@
-const { getAccessToken } = require("./lib/Twillio");
+const { client } = require("./lib/Twillio");
+const config = require("../config");
 
-console.log(getAccessToken());
+console.log(client.calls);

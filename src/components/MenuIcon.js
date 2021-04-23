@@ -11,8 +11,8 @@ const iconProps = {
   color: "var(--primary-color)",
 };
 
-const icons = {
-  jsm: <AiOutlinePhone {...iconProps} />,
+const icons = (props) => ({
+  jsm: <AiOutlinePhone {...iconProps} {...props} />,
   telegram: (
     <span
       style={{
@@ -22,18 +22,20 @@ const icons = {
         height: "37px",
         width: "37px",
       }}
+      {...props}
     >
       <FaTelegram
         style={{ ...iconProps.style, margin: "-1px 0 0 -1px" }}
         color="#0088CC"
+        {...props}
       />
     </span>
   ),
-  whatsup: <IoLogoWhatsapp {...iconProps} color="#25D366" />,
-  sip: <MdDialerSip {...iconProps} />,
-};
+  whatsup: <IoLogoWhatsapp {...iconProps} color="#25D366" {...props} />,
+  sip: <MdDialerSip {...iconProps} {...props} />,
+});
 
-export function MenuIcon({ selected }) {
+export function MenuThemeIcon({ selected, ...props }) {
   useEffect(() => {
     const theme = themes[selected] || "saga-blue";
     const element = document.getElementById("theme-link");
@@ -45,7 +47,7 @@ export function MenuIcon({ selected }) {
       element.href = element.href?.replace(currentTheme, theme);
   }, [selected]);
 
-  if (!icons[selected]) return null;
+  if (!icons(props)[selected]) return null;
 
-  return icons[selected];
+  return icons(props)[selected];
 }

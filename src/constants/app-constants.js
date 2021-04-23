@@ -16,4 +16,4 @@ export const STATUS = {
   },
 };
 
-export const RECORDING_TIME = 5 * 1000;
+export const RECORDING_TIME = 8 * 1000;

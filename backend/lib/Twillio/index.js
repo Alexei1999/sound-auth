@@ -1,22 +1,22 @@
 const twilio = require("twilio");
+const config = require("../../../config");
 
 const {
-  url,
   twilio: {
-    sid,
-    token,
     number,
+    account: { sid, token },
     api: { name, sid: apiSid, secret },
     app: { sid: appSid },
   },
-} = require("../../../config");
+  back,
+} = config;
 
 const VoiceResponse = twilio.twiml.VoiceResponse;
 const AccessToken = twilio.jwt.AccessToken;
 const VoiceGrant = AccessToken.VoiceGrant;
 const client = twilio(sid, token);
 
-const createResponse = (song) => {
+const createTwimlJsmResponse = (song) => {
   const response = new VoiceResponse();
   response.say(
     {
@@ -25,16 +25,30 @@ const createResponse = (song) => {
     "Добрый день, сейчас будет проиграна мелодия! Пожалуйста, поднесите устройство к микрофону!"
   );
   response.pause();
-  response.play(song);
+  response.play({ loop: 2 }, song);
   return response;
 };
 
-const twillio = async (target, song) => {
-  const response = createResponse(song);
+const createTwimlWebRTCResponse = (song) => {
+  const response = new VoiceResponse();
+
+  response.say(
+    {
+      language: "ru-RU",
+    },
+    "Добрый день, сейчас будет проиграна мелодия! Пожалуйста, поднесите устройство к микрофону!"
+  );
+  response.pause();
+  response.play({ loop: 2 }, song);
+  return response;
+};
+
+const twillioJsm = async (target, song) => {
+  const response = createTwimlJsmResponse(song);
   return client.calls.create(
     {
       statusCallbackEvent: ["initiated", "ringing", "answered", "completed"],
-      statusCallback: `${url}/webhook`,
+      statusCallback: `${back.url}/webhook`,
       twiml: response.toString(),
       from: number,
       to: target,
@@ -57,4 +71,10 @@ const getAccessToken = () => {
   return accessToken.toJwt();
 };
 
-module.exports = { twillio, getAccessToken };
+module.exports = {
+  twillioJsm,
+  getAccessToken,
+  createTwimlJsmResponse,
+  createTwimlWebRTCResponse,
+  client,
+};

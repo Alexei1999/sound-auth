@@ -12,10 +12,10 @@ import { useMethodsSetter } from "src/hooks/useMethodsSetter";
 import { useCallSSE } from "src/hooks/useCallSSE";
 import { useStatusChecker } from "src/hooks/useStatusChecker";
 import { RecordingDialog } from "src/components/Dialogs/RecordingDialog";
-import { MenuIcon as MenuThemeIcon } from "src/components/MenuIcon";
+import { MenuThemeIcon } from "src/components/MenuIcon";
 import axios from "axios";
 import { IncomingCallDialog } from "src/components/Dialogs/IncomingCallDialog";
-import { getMediaStreamError } from "src/utils/functionalUtils";
+import { initMediaStream } from "src/utils/functionalUtils";
 import { MEDIA_STREAM } from "src/constants/user-media";
 import { validate } from "src/services/validationServices";
 
@@ -85,7 +85,7 @@ export function MainPage() {
   useMethodsSetter({ setToastStack, setMethods, setDevicesStatus });
 
   useEffect(() => {
-    getMediaStreamError()
+    initMediaStream()
       .then(() => {
         setDevicesStatus((status) => ({ ...status, microphone: true }));
       })
@@ -171,13 +171,11 @@ export function MainPage() {
         const { type, id, status, message } = JSON.parse(event.data);
 
         if (!status) {
-          return toast.current?.show([
-            {
-              severity: "info",
-              summary: "Пусто",
-              detail: "Нет данных",
-            },
-          ]);
+          return toast.current?.show({
+            severity: "info",
+            summary: "Пусто",
+            detail: "Нет данных",
+          });
         }
 
         const severity =
@@ -202,16 +200,13 @@ export function MainPage() {
           },
           {
             severity: severity,
-            summary: `${result} - ${type || "Нет типа вызова"}`,
-            detail: id || "Нет идентификатора",
-          },
-          message && {
-            severity: "info",
-            summary: "Статус",
-            detail: message,
+            summary: `${result} - тип: ${type || "Нет типа вызова"}`,
+            detail: `Id: ${id || "Нет идентификатора"}`,
           },
         ]);
-      } catch (e) {}
+      } catch (e) {
+        console.log(e);
+      }
     },
   });
 
@@ -258,7 +253,10 @@ export function MainPage() {
           backgroundColor: "var(--surface-b)",
         }}
       >
-        <div className="p-d-flex p-ai-center p-col-5 p-jc-between">
+        <div
+          style={{ maxWidth: "200px", minWidth: "160px" }}
+          className="p-d-flex p-col-5 p-ai-center p-jc-between"
+        >
           <h1>Диплом</h1>
           <MenuThemeIcon selected={selectedKey} />
         </div>
@@ -269,6 +267,7 @@ export function MainPage() {
           time={RECORDING_TIME}
         />
         <InputField
+          style={{ maxWidth: "380px" }}
           isActive={isActive}
           value={input}
           onChange={(input) => {
@@ -307,7 +306,10 @@ export function MainPage() {
           </div>
         </div>
         <IsToneSwitcher status={status} isTone={isTone} setIsTone={setIsTone} />
-        <div className="p-mt-5 p-d-flex p-col-6 p-ai-end p-jc-between">
+        <div
+          style={{ maxWidth: "250px", minWidth: "210px" }}
+          className="p-mt-5 p-d-flex p-col-6 p-ai-end p-jc-between"
+        >
           <SendButton
             isSpinner={isSpinner}
             status={status}

@@ -86,6 +86,7 @@ export function RecordingDialog({ time, visible }) {
         onHide={() => {}}
         modal={false}
       >
+        {/* @ts-ignore */}
         <AudioReactRecorder
           backgroundColor="white"
           canvasWidth={window.innerWidth * 0.2 - 50}

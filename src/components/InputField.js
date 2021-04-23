@@ -4,13 +4,25 @@ import { STATUS } from "src/constants/app-constants";
 import { Skeleton } from "primereact/skeleton";
 import cn from "classnames";
 
-export function InputField({ isActive, item, status, onChange, value }) {
+export function InputField({
+  isActive,
+  item,
+  status,
+  onChange,
+  value,
+  className = null,
+  style = null,
+  ...props
+}) {
   const isDisabled =
     status === STATUS.SYSTEM.LOADING || status === STATUS.SYSTEM.ERROR;
 
   if (status === STATUS.SYSTEM.LOADING)
     return (
-      <div className="p-fluid p-formgrid p-grid">
+      <div
+        style={{ ...style }}
+        className={cn(className, "p-fluid p-formgrid p-grid")}
+      >
         <div className="p-field p-col-12">
           <Skeleton className="p-mb-2" height="21px" width="180px" />
           <Skeleton height="40px" />
@@ -20,7 +32,10 @@ export function InputField({ isActive, item, status, onChange, value }) {
 
   if (!item)
     return (
-      <div className="p-fluid p-formgrid p-grid">
+      <div
+        style={{ ...style }}
+        className={cn(className, "p-fluid p-formgrid p-grid")}
+      >
         <div className="p-field p-col-12">
           <label>Введите идентификатор</label>
           <span className="p-input-icon-right">
@@ -32,8 +47,11 @@ export function InputField({ isActive, item, status, onChange, value }) {
     );
 
   return (
-    <div className="p-fluid p-formgrid p-grid">
-      <div className="p-field p-col-12">
+    <div
+      style={{ ...style }}
+      className={cn(className, "p-fluid p-formgrid p-grid")}
+    >
+      <div className="p-field p-d-flex p-flex-column p-col-12">
         <label htmlFor={item.key}>Введите идентификатор</label>
         <InputMask
           className={cn(isActive && "p-invalid")}
@@ -44,6 +62,7 @@ export function InputField({ isActive, item, status, onChange, value }) {
           placeholder={item.placeholder}
           onChange={(e) => onChange(e.value)}
           aria-describedby={item.key}
+          {...props}
         />
         {isActive && (
           <small id={item.key} className="p-error p-d-block">

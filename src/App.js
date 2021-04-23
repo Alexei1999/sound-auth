@@ -14,7 +14,7 @@ function App() {
     <div className="App">
       <HashRouter>
         <Switch>
-          <Route path="/connect">
+          <Route path="/device">
             <ReceiveCallPage />
           </Route>
           <Route path="/">
