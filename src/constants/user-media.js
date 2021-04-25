@@ -3,6 +3,10 @@ export const EVENT_SOURCE = {
     MESSAGE: "message",
     INFO: "info",
     SEND_STATUS: "send-status",
+    TRIGGER_CALL: "trigger-call",
+    SET_DEVICE: "set_device",
+    GET_DEVICE: "get_device",
+    HEALTH: "health",
   },
   CALL_EVENT: {
     RINGING: "ringing",

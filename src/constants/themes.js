@@ -1,6 +1,6 @@
 export const themes = {
   jsm: "saga-blue",
   telegram: "vela-blue",
-  whatsup: "saga-green",
+  WebRTC: "saga-orange",
   sip: "saga-purple",
 };

@@ -2,13 +2,13 @@ import React from "react";
 import { Dialog } from "primereact/dialog";
 import { AiOutlinePhone } from "react-icons/ai";
 
-export function IncomingCallDialog() {
+export function IncomingCallDialog({ visible }) {
   return (
     <Dialog
       closeOnEscape={false}
       closable={false}
       header="Примите входящий вызов"
-      visible={true}
+      visible={visible}
       style={{ width: "20vw" }}
       baseZIndex={1000}
       onHide={() => {}}

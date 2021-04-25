@@ -8,8 +8,9 @@ const { twillioJsm } = require("../../lib/Twillio/index");
 const { generatePitch } = require("../helpers/pitch-generator/pitch-generator");
 const { recognisePitches } = require("../helpers/pitch-recognition");
 const { isPitchesEqual } = require("../helpers/is-pitch-equal");
-const { emitStatus } = require("../utils/functionalUtils.js");
-const { STATUS } = require("../constants/login.js");
+const { emitStatus, emitCallStatus } = require("../utils/functionalUtils.js");
+const { STATUS, EVENTS } = require("../constants/login.js");
+const { globalEmitter } = require("../events/emitter.js");
 
 const router = Router();
 
@@ -58,7 +59,7 @@ router.post("/auth", async (req, res) => {
   // @ts-ignore
   req.session.target = generatePitch();
   // @ts-ignore
-  req.session.type = key;
+  req.session.device_key = key;
   // @ts-ignore
   req.session.user_id = id;
 
@@ -66,6 +67,10 @@ router.post("/auth", async (req, res) => {
     switch (key) {
       case "jsm":
         twillioJsm(id, `${config.back.url}/song.wav`);
+        break;
+      case "WebRTC":
+        emitCallStatus({ status: STATUS.CALL.INITIATED, called: id });
+        globalEmitter.emit(EVENTS.SYSTEM.NAME, EVENTS.SYSTEM.TRIGGER_CALL);
         break;
       default:
         break;

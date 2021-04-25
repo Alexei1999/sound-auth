@@ -6,7 +6,6 @@ import cn from "classnames";
 
 export function StatusButton({
   status,
-  toast,
   className = undefined,
   onClick,
   ...props

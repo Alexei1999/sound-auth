@@ -1,80 +1,60 @@
 import React, { useEffect, useRef, useState } from "react";
-
-import { RadioGroup } from "src/components/RadioGroup";
-import { Toast } from "primereact/toast";
-import { RECORDING_TIME, STATUS } from "src/constants/app-constants";
-import { InputField } from "src/components/InputField";
-import { CSSTransition } from "react-transition-group";
-import { SendButton } from "src/components/SendButton";
-import { IsToneSwitcher } from "src/components/IsToneSwitcher";
-import { StatusButton } from "src/components/StatusButton";
-import { useMethodsSetter } from "src/hooks/useMethodsSetter";
-import { useCallSSE } from "src/hooks/useCallSSE";
-import { useStatusChecker } from "src/hooks/useStatusChecker";
-import { RecordingDialog } from "src/components/Dialogs/RecordingDialog";
-import { MenuThemeIcon } from "src/components/MenuIcon";
 import axios from "axios";
-import { IncomingCallDialog } from "src/components/Dialogs/IncomingCallDialog";
-import { initMediaStream } from "src/utils/functionalUtils";
+
+import { RECORDING_TIME, STATUS, TYPES } from "src/constants/app-constants";
 import { MEDIA_STREAM } from "src/constants/user-media";
+import { IncomingCallDialog } from "src/components/MainPage/Dialog/IncomingCallDialog";
+import { initMediaStream } from "src/utils/functionalUtils";
 import { validate } from "src/services/validationServices";
+import { getMethodsService } from "src/services/getMethodsService";
+import { actionCreators } from "../reducers/actions";
+import { MainPageContainer } from "src/components/MainPage/MainPageContainer/MainPageContainer";
+import { Header } from "src/components/MainPage/Header";
+import { InputField } from "src/components/MainPage/InputField/InputField";
+import { DeviceIndicator } from "src/components/MainPage/DeviceIndicator/DeviceIndicator";
+import { IsToneSwitcher } from "src/components/MainPage/IsToneSwitcher/index";
+import { SelectExtraKey } from "src/components/MainPage/RadioGroup/SelectExtraKey";
+import { FooterButtons } from "src/components/MainPage/FooterButtons";
+import { RecordingDialog } from "src/components/MainPage/Dialog/RecordingDialog";
+import { SelectKey } from "src/components/MainPage/RadioGroup/SelectKey";
+import { useContextApp } from "src/reducers/reducer";
+import { useToast } from "src/components/shared/ToastProvider";
 
 export function MainPage() {
-  const [status, setStatus] = useState(STATUS.SYSTEM.LOADING);
-  const [methods, setMethods] = useState(null);
-  const [isTone, setIsTone] = useState(true);
-  const [devicesStatus, setDevicesStatus] = useState({
-    microphone: null,
-    server: null,
-  });
-  const [input, setInput] = useState();
-  const [showExtra, setShowExtra] = useState(null);
-  const [selectedKey, setSelectedKey] = useState(null);
-  const [selectedExtraKey, setSelectedExtraKey] = useState(null);
-  const [isSpinner, setIsSpinner] = useState(false);
-  const [isActive, setIsActive] = useState(false);
+  const [state, dispatch] = useContextApp();
 
-  const toast = useRef(null);
   const buttonCallback = useRef(null);
 
-  const [toastsStack, setToastStack] = useState([]);
+  const { toastWarn, toastError } = useToast();
 
-  const addToast = (payload, stopLoading = true) =>
-    stopLoading
-      ? setToastStack((toasts) => [
-          ...toasts,
-          ...(Array.isArray(payload) ? payload : [payload]),
-        ])
-      : toast.current?.show(payload);
+  const {
+    status,
+    devices: { microphone, microphoneError, server },
+    form: { isTone, selectedKey, selectedExtraKey, methods },
+    view: { type },
+    toastRef,
+  } = state;
 
-  const queryStatus = (setLoading) => {
-    setLoading?.(true);
-    axios
-      .get("/get-status")
-      .catch((e) => {
-        console.error(e);
-        addToast({
-          severity: "warn",
-          summary: "Ошибка",
-          detail: "Ошибка запроса на сервер, обновите страницу",
-        });
-      })
-      .finally(() => {
-        setLoading?.(false);
-      });
-  };
+  const [input, setInput] = useState();
 
   useEffect(() => {
-    setIsSpinner(false);
-  }, [status, toastsStack]);
-
-  useEffect(() => {
-    if (!toast.current || !toastsStack.length) return;
-
-    toast.current?.show(toastsStack.pop());
-    setToastStack([...toastsStack]);
     buttonCallback.current?.();
-  }, [toastsStack]);
+  }, [toastRef]);
+
+  useEffect(() => {
+    if (type === TYPES.INPUT) buttonCallback.current?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [methods]);
+
+  useEffect(() => {
+    if (type !== TYPES.INDICATOR) return;
+
+    axios("/device-status").catch((e) => {
+      dispatch(actionCreators.setStatus(STATUS.SYSTEM.ERROR));
+    });
+    dispatch(actionCreators.setIsActive(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [type]);
 
   useEffect(() => {
     if (status === STATUS.READY) {
@@ -82,145 +62,66 @@ export function MainPage() {
     }
   }, [status]);
 
-  useMethodsSetter({ setToastStack, setMethods, setDevicesStatus });
+  useEffect(() => {
+    getMethodsService()
+      .then((data) => {
+        console.log("set methods -> ", methods);
+        dispatch(actionCreators.setMethods(data));
+      })
+      .catch((e) => {
+        console.error(e);
+        dispatch(actionCreators.setServerStatus(false));
+        toastError(
+          "Ошибка запроса на сервер",
+          "Нет связи с сервером, обновите страницу"
+        );
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     initMediaStream()
       .then(() => {
-        setDevicesStatus((status) => ({ ...status, microphone: true }));
+        dispatch(actionCreators.setMicrophoneStatus(true));
       })
       .catch((error) => {
-        setDevicesStatus((status) => ({ ...status, microphone: error.name }));
+        dispatch(actionCreators.setMicrophoneStatus(false, error.name));
         switch (error.name) {
           case MEDIA_STREAM.ERROR.NOT_ALLOWED:
-            addToast({
-              severity: "warn",
-              summary: "Ошибка доступа",
-              detail: "Предоставьте доступ к микрофону",
-              life: "<frontend port>",
-            });
+            toastWarn("Ошибка доступа", "Предоставьте доступ к микрофону");
             break;
           case MEDIA_STREAM.ERROR.NOT_FOUND:
-            addToast({
-              severity: "error",
-              summary: "Ошибка",
-              detail: "Микрофон не обнаружен",
-              life: "<frontend port>",
-            });
+            toastError("Ошибка", "Микрофон не обнаружен");
             break;
           default:
         }
       });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useCallSSE({
-    onError: () => {
-      addToast({
-        severity: "error",
-        summary: "Ошибка",
-        detail: "Нет связи с сервером, обновите страницу",
-      });
-      setDevicesStatus((status) => ({ ...status, server: false }));
-    },
-    onMessage: (e) =>
-      addToast({
-        severity: "info",
-        summary: "Сообщение",
-        detail: e.data,
-      }),
-    onOpen: () => setDevicesStatus((status) => ({ ...status, server: true })),
-    onInit: () => {
-      addToast(
-        {
-          severity: "info",
-          summary: "Совершается вызов",
-          detail: "Вызов инициализирован",
-        },
-        false
-      );
-      setIsSpinner(false);
-    },
-    onRinging: () => setStatus(STATUS.CALL.RINGING),
-    onInProgress: () => setStatus(STATUS.CALL.IN_PROGRESS),
-    onCompleted: () => {
-      addToast({
-        severity: "success",
-        summary: "Успех",
-        detail: "Вызов успешно завершен",
-      });
-      if (status !== STATUS.SYSTEM.ERROR) setStatus(STATUS.READY);
-    },
-    onFailed: (number) => {
-      addToast({
-        severity: "error",
-        summary: "Ошибка вызова",
-        detail: "Невозможно набрать номер " + number.data || "",
-      });
-      if (status !== STATUS.SYSTEM.ERROR) setStatus(STATUS.READY);
-    },
-    onBusy: () => {
-      addToast({
-        severity: "warn",
-        summary: "Занято",
-        detail: "Вызов сброшен",
-      });
-      if (status !== STATUS.SYSTEM.ERROR) setStatus(STATUS.READY);
-    },
-    onStatus: (event) => {
-      try {
-        const { type, id, status, message } = JSON.parse(event.data);
+  useEffect(() => {
+    if (server === false || microphoneError === MEDIA_STREAM.ERROR.NOT_FOUND)
+      return dispatch(actionCreators.setStatus(STATUS.SYSTEM.ERROR));
+    if (microphoneError === MEDIA_STREAM.ERROR.NOT_ALLOWED)
+      return dispatch(actionCreators.setStatus(STATUS.IDLE));
+    if (server === true && microphone === true && methods) {
+      return dispatch(actionCreators.setStatus(STATUS.READY));
+    }
 
-        if (!status) {
-          return toast.current?.show({
-            severity: "info",
-            summary: "Пусто",
-            detail: "Нет данных",
-          });
-        }
-
-        const severity =
-          status === STATUS.RESULT.SUCCESS
-            ? "success"
-            : status === STATUS.RESULT.FAILRUE
-            ? "warn"
-            : "info";
-
-        const result =
-          status === STATUS.RESULT.SUCCESS
-            ? "Успешно"
-            : status === STATUS.RESULT.FAILRUE
-            ? "Провалено"
-            : "Статус";
-
-        toast.current?.show([
-          message && {
-            severity: "info",
-            summary: "Сообщение",
-            detail: message,
-          },
-          {
-            severity: severity,
-            summary: `${result} - тип: ${type || "Нет типа вызова"}`,
-            detail: `Id: ${id || "Нет идентификатора"}`,
-          },
-        ]);
-      } catch (e) {
-        console.log(e);
-      }
-    },
-  });
-
-  useStatusChecker({ devicesStatus, methods, setStatus });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [microphone, server, methods]);
 
   const onClickHandler = async () => {
-    setIsSpinner(true);
+    dispatch(actionCreators.setIsSpinner(true));
 
-    if (!validate(selectedKey, input)) {
-      setIsActive(true);
-      setIsSpinner(false);
+    if (!validate(selectedKey, input, methods?.[selectedKey])) {
+      dispatch(actionCreators.setIsActive(true));
+      dispatch(actionCreators.setIsSpinner(false));
       buttonCallback.current?.();
       return;
     }
+
+    console.log(methods?.[selectedKey]?.type, methods?.[selectedKey]);
 
     axios.post(
       "/auth",
@@ -228,7 +129,13 @@ export function MainPage() {
         key: selectedKey,
         extraKey: selectedExtraKey,
         isTone,
-        id: input?.replace(/[^\d+]/g, ""),
+        id:
+          methods?.[selectedKey]?.type === TYPES.INPUT
+            ? // @ts-ignore
+              input?.replace(/[^\d+]/g, "")
+            : methods?.[selectedKey]?.type === TYPES.INDICATOR
+            ? methods?.[selectedKey]?.deviceName
+            : null,
       },
       {
         headers: {
@@ -238,88 +145,29 @@ export function MainPage() {
     );
   };
 
-  const isExtra = methods && methods[selectedKey]?.extra;
-
   return (
-    <div
-      className="p-d-flex p-jc-center p-ai-start"
-      style={{ backgroundColor: "var(--surface-a)", height: "100vh" }}
-    >
-      <div
-        className="p-col-4 p-nogutter"
-        style={{
-          minWidth: "400px",
-          padding: "0 40px 40px",
-          backgroundColor: "var(--surface-b)",
-        }}
-      >
-        <div
-          style={{ maxWidth: "200px", minWidth: "160px" }}
-          className="p-d-flex p-col-5 p-ai-center p-jc-between"
-        >
-          <h1>Диплом</h1>
-          <MenuThemeIcon selected={selectedKey} />
-        </div>
-        <Toast ref={toast} />
-        {status === STATUS.CALL.RINGING && <IncomingCallDialog />}
-        <RecordingDialog
-          visible={status === STATUS.CALL.IN_PROGRESS}
-          time={RECORDING_TIME}
-        />
-        <InputField
-          style={{ maxWidth: "380px" }}
-          isActive={isActive}
-          value={input}
-          onChange={(input) => {
-            setIsActive(false);
-            setInput(input);
-          }}
-          status={status}
-          item={methods?.[selectedKey]}
-        />
-        <div className="p-grid p-nogutter p-mt-1 p-ml-2">
-          <RadioGroup
-            status={status}
-            selected={selectedKey}
-            setSelected={setSelectedKey}
-            items={methods && Object.values(methods)}
-          />
-          <div className="p-ml-6">
-            <CSSTransition
-              classNames="extra"
-              in={isExtra}
-              timeout={300}
-              unmountOnExit
-              onEntered={() => setShowExtra(true)}
-              onExiting={() => setShowExtra(false)}
-            >
-              <div>
-                <RadioGroup
-                  status={status}
-                  isSkeleton={!showExtra}
-                  selected={selectedExtraKey}
-                  setSelected={setSelectedExtraKey}
-                  items={methods?.[selectedKey]?.extra}
-                />
-              </div>
-            </CSSTransition>
-          </div>
-        </div>
-        <IsToneSwitcher status={status} isTone={isTone} setIsTone={setIsTone} />
-        <div
-          style={{ maxWidth: "250px", minWidth: "210px" }}
-          className="p-mt-5 p-d-flex p-col-6 p-ai-end p-jc-between"
-        >
-          <SendButton
-            isSpinner={isSpinner}
-            status={status}
-            onClick={onClickHandler}
-            stopLoader={buttonCallback}
-          />
-          <StatusButton status={status} toast={toast} onClick={queryStatus} />
-        </div>
+    <MainPageContainer>
+      <Header />
+      <IncomingCallDialog visible={status === STATUS.CALL.RINGING} />
+      <RecordingDialog
+        visible={status === STATUS.CALL.IN_PROGRESS}
+        time={RECORDING_TIME}
+      />
+      {(type === TYPES.INPUT || !type) && (
+        <InputField value={input} onChange={setInput} />
+      )}
+      {type === TYPES.INDICATOR && <DeviceIndicator />}
+      <div className="p-grid p-nogutter p-mt-1 p-ml-2">
+        <SelectKey />
+        <SelectExtraKey className="p-ml-6" />
       </div>
-    </div>
+      <IsToneSwitcher />
+      <FooterButtons
+        onClickHandler={onClickHandler}
+        buttonCallback={buttonCallback}
+        toastWarn={toastWarn}
+      />
+    </MainPageContainer>
   );
 }
 

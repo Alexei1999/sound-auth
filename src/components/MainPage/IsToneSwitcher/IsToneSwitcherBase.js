@@ -4,7 +4,7 @@ import React from "react";
 import { STATUS } from "src/constants/app-constants";
 import cn from "classnames";
 
-export function IsToneSwitcher({
+export function IsToneSwitcherBase({
   status,
   isTone,
   setIsTone,
@@ -52,7 +52,7 @@ export function IsToneSwitcher({
           e.preventDefault();
           if (status === STATUS.SYSTEM.ERROR) return;
 
-          setIsTone((value) => !value);
+          setIsTone(!isTone);
         }}
       >
         Генерация тональной последовательности

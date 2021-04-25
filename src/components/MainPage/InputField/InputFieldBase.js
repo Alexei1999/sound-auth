@@ -4,7 +4,7 @@ import { STATUS } from "src/constants/app-constants";
 import { Skeleton } from "primereact/skeleton";
 import cn from "classnames";
 
-export function InputField({
+export function InputFieldBase({
   isActive,
   item,
   status,

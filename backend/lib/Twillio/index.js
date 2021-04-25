@@ -1,4 +1,5 @@
 const twilio = require("twilio");
+const { Dial } = require("twilio/lib/twiml/VoiceResponse");
 const config = require("../../../config");
 
 const {

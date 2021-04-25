@@ -11,6 +11,7 @@ export function SendButton({
   onClick,
   stopLoader,
   isSpinner = false,
+  disabled = false,
   ...props
 }) {
   const [loading, setLoading] = useState(false);
@@ -36,7 +37,7 @@ export function SendButton({
 
   return (
     <Button
-      disabled={loading || status === STATUS.SYSTEM.ERROR}
+      disabled={disabled || loading || status === STATUS.SYSTEM.ERROR}
       label="Регистрация"
       className={cn("p-button ", className)}
       onClick={() => {

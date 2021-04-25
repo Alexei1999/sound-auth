@@ -16,4 +16,9 @@ export const STATUS = {
   },
 };
 
+export const TYPES = {
+  INPUT: "INPUT",
+  INDICATOR: "INDICATOR",
+};
+
 export const RECORDING_TIME = 8 * 1000;

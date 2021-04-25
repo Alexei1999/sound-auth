@@ -16,24 +16,19 @@ module.exports.STATUS = {
 
 module.exports.EVENTS = {
   CALL: { NAME: "call" },
-  SYSTEM: { NAME: "system", SEND_STATUS: "send-status", MESSAGE: "message" },
+  SYSTEM: {
+    NAME: "system",
+    SEND_STATUS: "send-status",
+    SET_DEVICE: "set_device",
+    MESSAGE: "message",
+    GET_DEVICE: "get_device",
+    TRIGGER_CALL: "trigger-call",
+  },
 };
 
-module.exports.views = {
-  jsm: {
-    mask: "+999 (99) 999-99-99",
-    placeholder: "+XXX (XX) XXX-XX-XX",
-  },
-  telegram: {
-    mask: "@aaaaaaa",
-    placeholder: "@telegram_id",
-  },
-  whatsup: {
-    mask: "+999 (99) 999-99-99",
-    placeholder: "+XXX (XX) XXX-XX-XX",
-  },
-  sip: {
-    mask: "+999 (99) 999-99-99",
-    placeholder: "+XXX (XX) XXX-XX-XX",
-  },
+const TYPES = {
+  INPUT: "INPUT",
+  INDICATOR: "INDICATOR",
 };
+
+module.exports.TYPES = TYPES;

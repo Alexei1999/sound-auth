@@ -1,52 +1,23 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Card } from "primereact/card";
-import { Tag } from "primereact/tag";
 import axios from "axios";
 import { initMediaStream } from "src/utils/functionalUtils";
-import { EVENT_SOURCE } from "src/constants/user-media";
 import { Toast } from "primereact/toast";
-import { CallInProgress } from "src/components/Dialogs/CallInProgress";
+import { CallInProgress } from "src/components/ReceiveCallPage/CallInProgress";
+import { EVENT_SOURCE } from "src/constants/user-media";
+import { CONNECT_STATUS, Status } from "src/components/ReceiveCallPage/Status";
 const { Device } = require("twilio-client");
-const cn = require("classnames");
-
-const WEB_RTC = {
-  CONNECTED: "CONNECTED",
-  REQUESTING: "REQUESTING",
-  FAILED: "FAILED",
-  IDLE: "IDLE",
-};
-
-const CALL_STATUS = {
-  CONNECTED: "CONNECTED",
-  DISCONNECTED: "DISCONNECTED",
-};
-
-function Status({ status, label, ...props }) {
-  return status === WEB_RTC.REQUESTING ? (
-    <Tag
-      severity="info"
-      value={label}
-      {...props}
-      icon="pi pi-spin pi-spinner"
-    />
-  ) : status === WEB_RTC.CONNECTED ? (
-    <Tag severity="success" value={label} {...props} icon="pi pi-check" />
-  ) : status === WEB_RTC.FAILED ? (
-    <Tag severity="danger" value={label} {...props} icon="pi pi-times" />
-  ) : (
-    <Tag value={label} {...props} icon="pi pi-circle-off" />
-  );
-}
 
 export function ReceiveCallPage() {
-  const [deviceStatus, setDeviceStatus] = useState(WEB_RTC.IDLE);
-  const [tokenStatus, setTokenStatus] = useState(WEB_RTC.IDLE);
-  const [mediaStatus, setMediaStatus] = useState(WEB_RTC.IDLE);
-  const [eventsStatus, setEventsStatus] = useState(WEB_RTC.IDLE);
-  const [isRinged, setIsRinged] = useState(false);
-  const [device, setDevice] = useState(null);
+  const [deviceStatus, setDeviceStatus] = useState(CONNECT_STATUS.IDLE);
+  const [tokenStatus, setTokenStatus] = useState(CONNECT_STATUS.IDLE);
+  const [mediaStatus, setMediaStatus] = useState(CONNECT_STATUS.IDLE);
+  const [eventsStatus, setEventsStatus] = useState(CONNECT_STATUS.IDLE);
   const [isInProgress, setIsInProgress] = useState(false);
   const [isCriticalShowed, setIsCriticialShowed] = useState(false);
+
+  const isReady = useRef(false);
+  const deviceRef = useRef(null);
 
   const toast = useRef(null);
 
@@ -54,15 +25,13 @@ export function ReceiveCallPage() {
     if (
       !isCriticalShowed &&
       [deviceStatus, tokenStatus, mediaStatus, eventsStatus].some(
-        (status) => status === WEB_RTC.FAILED
+        (status) => status === CONNECT_STATUS.FAILED
       )
     ) {
       toast.current?.show({
-        sticky: true,
-        closable: false,
         severity: "error",
-        summary: "Ошибка связи с сервером",
-        detail: "Перезагрузите страницу",
+        summary: "Ошибка",
+        detail: "Связь не может быть установлена",
       });
       setIsCriticialShowed(true);
     }
@@ -70,20 +39,43 @@ export function ReceiveCallPage() {
   }, [deviceStatus, tokenStatus, mediaStatus, eventsStatus]);
 
   useEffect(() => {
-    setEventsStatus(WEB_RTC.REQUESTING);
-    const eventSource = new EventSource("/emitter");
+    setEventsStatus(CONNECT_STATUS.REQUESTING);
+    const eventSource = new EventSource("/device-emitter");
 
-    eventSource.onerror = () => {
-      setEventsStatus(WEB_RTC.FAILED);
-      console.log("error");
+    eventSource.onerror = (e) => {
+      setEventsStatus(CONNECT_STATUS.FAILED);
+      console.log("error -> ", e);
     };
     eventSource.onopen = () => {
-      setEventsStatus(WEB_RTC.CONNECTED);
+      setEventsStatus(CONNECT_STATUS.CONNECTED);
       console.log("open");
     };
     eventSource.onmessage = (e) => {
       console.log("message");
     };
+
+    eventSource.addEventListener(EVENT_SOURCE.SYSTEM_EVENT.TRIGGER_CALL, () => {
+      console.log("call triggered! -> ", isReady.current, deviceRef.current);
+      if (isReady.current) deviceRef.current?.connect();
+      else {
+        axios.post("/webhook", {
+          Called: "device",
+          CallStatus: EVENT_SOURCE.CALL_EVENT.ERROR,
+        });
+        toast.current?.show({
+          severity: "error",
+          summary: "Ошибка связи с сервером",
+          detail: "Перезагрузите страницу",
+        });
+      }
+    });
+
+    eventSource.addEventListener(EVENT_SOURCE.SYSTEM_EVENT.GET_DEVICE, () => {
+      axios.post("/device-status", {
+        isReady: isReady.current,
+        deviceName: "caller",
+      });
+    });
 
     return () => {
       eventSource.close();
@@ -92,56 +84,72 @@ export function ReceiveCallPage() {
   }, []);
 
   useEffect(() => {
+    console.log(
+      "check is ready -> ",
+      deviceRef.current,
+      deviceStatus,
+      mediaStatus,
+      eventsStatus
+    );
     if (
-      !isRinged &&
-      device &&
-      deviceStatus === WEB_RTC.CONNECTED &&
-      mediaStatus === WEB_RTC.CONNECTED
+      deviceRef.current &&
+      deviceStatus === CONNECT_STATUS.CONNECTED &&
+      mediaStatus === CONNECT_STATUS.CONNECTED &&
+      eventsStatus === CONNECT_STATUS.CONNECTED
     ) {
-      device.connect();
-      // axios.post('/webhook', )
-    }
+      isReady.current = true;
+    } else isReady.current = false;
+    axios.post("/device-status", {
+      isReady: isReady.current,
+      deviceName: "caller",
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isRinged, deviceStatus, mediaStatus, device]);
+  }, [deviceStatus, mediaStatus, eventsStatus]);
 
   useEffect(() => {
-    setMediaStatus(WEB_RTC.REQUESTING);
+    setMediaStatus(CONNECT_STATUS.REQUESTING);
     initMediaStream()
       .then(() => {
-        setMediaStatus(WEB_RTC.CONNECTED);
+        setMediaStatus(CONNECT_STATUS.CONNECTED);
       })
       .catch(() => {
-        setMediaStatus(WEB_RTC.FAILED);
+        setMediaStatus(CONNECT_STATUS.FAILED);
       });
   }, []);
 
   useEffect(() => {
-    setTokenStatus(WEB_RTC.REQUESTING);
+    setTokenStatus(CONNECT_STATUS.REQUESTING);
     axios.get("/token").then(({ data }) => {
-      setTokenStatus(WEB_RTC.CONNECTED);
-      setDeviceStatus(WEB_RTC.REQUESTING);
+      setTokenStatus(CONNECT_STATUS.CONNECTED);
+      setDeviceStatus(CONNECT_STATUS.REQUESTING);
       const device = new Device(data.token, {
+        appName: "caller",
         // @ts-ignore
         codecPreferences: ["opus", "pcmu"],
         fakeLocalDTMF: true,
         enableRingingState: true,
       });
       device.on("ready", function () {
-        setDeviceStatus(WEB_RTC.CONNECTED);
-        setDevice(device);
+        console.log("ready -> ", device);
+
+        deviceRef.current = device;
+        setDeviceStatus(CONNECT_STATUS.CONNECTED);
       });
       device.on("error", function (error) {
         setIsInProgress(false);
         console.log("Twilio.Device Error: " + error.message);
-        setDeviceStatus(WEB_RTC.FAILED);
+        setDeviceStatus(CONNECT_STATUS.FAILED);
       });
       device.on("connect", function () {
         setIsInProgress(true);
         console.log("Successfully established call!");
+        axios.post("/webhook", {
+          Called: "device",
+          CallStatus: EVENT_SOURCE.CALL_EVENT.IN_PROGRESS,
+        });
       });
       device.on("disconnect", function () {
         setIsInProgress(false);
-        setIsRinged(true);
         console.log("Successfully disconnected call!");
       });
     });

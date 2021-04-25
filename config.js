@@ -14,7 +14,7 @@ module.exports = {
     number: "<twilio number>",
     account: {
       sid: "<twilio account sid>",
-      token: "81262342c247ecdbb49bae34578e638e",
+      token: "<twilio account token>",
     },
     api: {
       name: "<twilio api name>",

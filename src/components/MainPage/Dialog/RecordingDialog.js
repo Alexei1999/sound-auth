@@ -4,7 +4,6 @@ import { ProgressBar } from "primereact/progressbar";
 import { BsFillMicFill } from "react-icons/bs";
 import axios from "axios";
 import AudioReactRecorder, { RecordState } from "audio-react-recorder";
-import { STATUS } from "src/constants/app-constants";
 
 export function RecordingDialog({ time, visible }) {
   const [progress, setProgress] = useState(0);
