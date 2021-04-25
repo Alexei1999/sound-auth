@@ -130,7 +130,7 @@ const mainReducer = (state, action) => {
           ...state.form,
           methods: {
             ...state.form.methods,
-            [device.key]: { ...state.form.methods[device.key], ...device },
+            [device.key]: { ...state.form.methods?.[device.key], ...device },
           },
         },
       };
