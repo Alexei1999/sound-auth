@@ -7,9 +7,13 @@ import { useContextApp } from "src/reducers/reducer";
 import { useToast } from "../../shared/ToastProvider";
 
 export function MainPageEventsBoundary({ children }) {
-  const fuck = useToast();
-  console.log("error boundary -> ", fuck);
-  const { toastInfo, toastSuccess, toastWarn, toastError, toastMany } = fuck;
+  const {
+    toastInfo,
+    toastSuccess,
+    toastWarn,
+    toastError,
+    toastMany,
+  } = useToast();
 
   const [state, dispatch] = useContextApp();
 
@@ -86,7 +90,7 @@ export function MainPageEventsBoundary({ children }) {
         console.log("status");
         try {
           // @ts-ignore
-          const { device_key, id, status, message } = event.data;
+          const { device_key, id, status, message } = JSON.parse(event.data);
 
           if (!status) {
             return toastInfo("Пусто", "Нет данных");
@@ -123,6 +127,7 @@ export function MainPageEventsBoundary({ children }) {
             },
           ]);
         } catch (e) {
+          toastError();
           console.error(e);
         }
       }

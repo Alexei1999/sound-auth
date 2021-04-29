@@ -57,7 +57,7 @@ export function InputFieldBase({
           className={cn(isActive && "p-invalid")}
           disabled={isDisabled}
           id={item.key}
-          mask={item.mask}
+          mask={item.mask || ""}
           value={value}
           placeholder={item.placeholder}
           onChange={(e) => onChange(e.value)}

@@ -24,19 +24,20 @@ export const useToast = () => {
     dispatch(actionCreators.toggleToast());
   };
 
-  const toastWarn = showToast.bind(null, "info");
-  const toastError = showToast.bind(null, "error");
-  const toastInfo = showToast.bind(null, "info");
-  const toastSuccess = showToast.bind(null, "success");
+  const toastWarn = Object.assign(showToast.bind(null, "info"), {
+    severity: "warn",
+  });
+  const toastError = Object.assign(showToast.bind(null, "error"), {
+    severity: "error",
+  });
+  const toastInfo = Object.assign(showToast.bind(null, "info"), {
+    severity: "info",
+  });
+  const toastSuccess = Object.assign(showToast.bind(null, "success"), {
+    severity: "success",
+  });
   const toastMany = (payload) => toast.current?.show(payload);
 
-  console.log("try to return -> ", {
-    toastInfo,
-    toastSuccess,
-    toastWarn,
-    toastError,
-    toastMany,
-  });
   return { toastInfo, toastSuccess, toastWarn, toastError, toastMany };
 };
 

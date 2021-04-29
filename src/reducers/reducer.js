@@ -128,11 +128,18 @@ const mainReducer = (state, action) => {
         ...state,
         form: {
           ...state.form,
+          item: { ...state.form.methods?.[device.key], ...device },
           methods: {
             ...state.form.methods,
             [device.key]: { ...state.form.methods?.[device.key], ...device },
           },
         },
+        view: {
+          ...state.view,
+          isSpinner: false,
+        },
+        //dev only
+        toastRef: {},
       };
     case actionTypes.TOGGLE_TOAST:
       return {

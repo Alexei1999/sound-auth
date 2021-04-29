@@ -1,13 +1,19 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Dialog } from "primereact/dialog";
 import { ProgressBar } from "primereact/progressbar";
 import { BsFillMicFill } from "react-icons/bs";
 import axios from "axios";
 import AudioReactRecorder, { RecordState } from "audio-react-recorder";
+import { useScreenSize } from "src/hooks/useScreenWidth";
+import { ErrorBoundary } from "src/components/shared/ErrorBoundary";
 
 export function RecordingDialog({ time, visible }) {
   const [progress, setProgress] = useState(0);
   const [recordState, setRecordState] = useState(RecordState.NONE);
+
+  const [, height] = useScreenSize();
+  const isMobile = height < 705;
+  const isHorizontal = height < 400;
 
   useEffect(() => {
     if (!visible && progress !== 0) {
@@ -53,9 +59,12 @@ export function RecordingDialog({ time, visible }) {
     setProgress(0);
   };
 
+  const micModal = useRef(null);
+
   return (
     <>
       <Dialog
+        position={isHorizontal ? "left" : isMobile ? "top" : undefined}
         closeOnEscape={false}
         closable={false}
         header="Подождите"
@@ -67,7 +76,10 @@ export function RecordingDialog({ time, visible }) {
           />
         }
         visible={visible}
-        style={{ width: "50vw" }}
+        style={{
+          minWidth: "200px",
+          width: isHorizontal ? "50vw" : isMobile ? "100vw" : "50vw",
+        }}
         baseZIndex={1000}
         onHide={() => {}}
       >
@@ -77,22 +89,31 @@ export function RecordingDialog({ time, visible }) {
         </div>
       </Dialog>
       <Dialog
+        ref={micModal}
         closeOnEscape={false}
         closable={false}
         baseZIndex={1001}
-        position="bottom-right"
+        position={!isHorizontal && isMobile ? "bottom" : "bottom-right"}
         visible={visible}
         onHide={() => {}}
         modal={false}
+        style={{
+          minWidth: "200px",
+          width: isHorizontal ? "50vw" : isMobile ? "100vw" : "20vw",
+          height: isHorizontal ? "100vh" : isMobile ? "50vh" : "20vh",
+          minHeight: "110px",
+        }}
       >
-        {/* @ts-ignore */}
-        <AudioReactRecorder
-          backgroundColor="white"
-          canvasWidth={window.innerWidth * 0.2 - 50}
-          canvasHeight="175"
-          state={recordState}
-          onStop={stopRecordingHandler}
-        />
+        <ErrorBoundary message="Проблема с получением контекста микрофона">
+          {/* @ts-ignore */}
+          <AudioReactRecorder
+            backgroundColor="white"
+            canvasWidth={micModal.current?.contentEl?.clientWidth - 50}
+            canvasHeight={micModal.current?.dialogEl?.clientHeight - 84}
+            state={recordState}
+            onStop={stopRecordingHandler}
+          />
+        </ErrorBoundary>
       </Dialog>
     </>
   );

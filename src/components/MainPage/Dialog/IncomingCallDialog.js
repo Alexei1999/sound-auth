@@ -9,7 +9,7 @@ export function IncomingCallDialog({ visible }) {
       closable={false}
       header="Примите входящий вызов"
       visible={visible}
-      style={{ width: "20vw" }}
+      style={{ minWidth: "210px", width: "20vw" }}
       baseZIndex={1000}
       onHide={() => {}}
     >
