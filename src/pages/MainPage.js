@@ -86,24 +86,34 @@ export function MainPage() {
       })
       .catch((error) => {
         dispatch(actionCreators.setMicrophoneStatus(false, error.name));
-        switch (error.name) {
-          case MEDIA_STREAM.ERROR.NOT_ALLOWED:
-            toastWarn("Ошибка доступа", "Предоставьте доступ к микрофону");
-            break;
-          case MEDIA_STREAM.ERROR.NOT_FOUND:
-            toastError("Ошибка", "Микрофон не обнаружен");
-            break;
-          default:
-        }
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
+    if (!microphoneError) return;
+    switch (microphoneError) {
+      case MEDIA_STREAM.ERROR.NOT_ALLOWED:
+        toastWarn("Ошибка доступа", "Доступ к микрофону заблокирован");
+        break;
+      case MEDIA_STREAM.ERROR.NOT_FOUND:
+        toastError("Ошибка", "Микрофон не обнаружен");
+        break;
+      default:
+        toastError(
+          "Ошибка",
+          "Невозможно получить доступ к контексту микрофона, перезагрузте страницу"
+        );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [microphoneError]);
+
+  useEffect(() => {
     if (server === false || microphoneError === MEDIA_STREAM.ERROR.NOT_FOUND)
       return dispatch(actionCreators.setStatus(STATUS.SYSTEM.ERROR));
-    if (microphoneError === MEDIA_STREAM.ERROR.NOT_ALLOWED)
+    if (microphoneError === MEDIA_STREAM.ERROR.NOT_ALLOWED) {
       return dispatch(actionCreators.setStatus(STATUS.IDLE));
+    }
     if (server === true && microphone === true && methods) {
       return dispatch(actionCreators.setStatus(STATUS.READY));
     }

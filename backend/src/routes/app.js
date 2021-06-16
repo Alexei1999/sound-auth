@@ -4,7 +4,6 @@ const { globalEmitter } = require("../events/emitter");
 const router = Router();
 
 const methods = require("../__mocks__/methods.js");
-const { EVENTS } = require("../constants/login");
 const { emitStatus, emitCallStatus } = require("../utils/functionalUtils");
 const { views } = require("../__mocks__/methods.js");
 const { emitHandler } = require("../helpers/handlers");
@@ -34,7 +33,6 @@ router.get("/get-status", async (req, res) => {
 router.get("/emitter", emitHandler);
 
 router.post("/webhook", async (req, res) => {
-  console.log("piska -> ", req.body);
   let called = req.body.Called;
   let status = req.body.CallStatus;
 

@@ -19,10 +19,10 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(
   session({
-    secret: "<session key>",
+    secret: config.session.key,
     resave: false,
     saveUninitialized: true,
-    // cookie: { secure: true }
+    // cookie: { secure: true },
   })
 );
 
@@ -31,13 +31,13 @@ app.use(deviceRoutes);
 app.use(loginRoutes);
 
 (async () => {
-  const backUrl = await ngrok.connect({
+  const backendUrl = await ngrok.connect({
     subdomain: config.back.subdomain,
     addr: config.back.port,
     authtoken: config.ngrok,
     // onLogEvent: (e) => console.log(chalk.blueBright(e)),
   });
-  const frontUrl = await ngrok.connect({
+  const frontendUrl = await ngrok.connect({
     subdomain: config.front.subdomain,
     host_header: config.front.port,
     addr: config.front.port,
@@ -45,10 +45,10 @@ app.use(loginRoutes);
     onLogEvent: (e) => console.log(chalk.redBright(e)),
   });
 
-  console.log("public be url: ", backUrl);
-  console.log("public fe url: ", frontUrl);
-  config.back.url = backUrl;
-  config.front.url = frontUrl;
+  console.log("public be url: ", backendUrl);
+  console.log("public fe url: ", frontendUrl);
+  config.back.url = backendUrl;
+  config.front.url = frontendUrl;
 
   app.listen(PORT, () => {
     console.log(`Server listening on ${HOST}:${PORT}`);

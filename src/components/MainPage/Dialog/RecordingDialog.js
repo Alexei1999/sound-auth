@@ -5,15 +5,35 @@ import { BsFillMicFill } from "react-icons/bs";
 import axios from "axios";
 import AudioReactRecorder, { RecordState } from "audio-react-recorder";
 import { useScreenSize } from "src/hooks/useScreenWidth";
+import { initMediaStream } from "src/utils/functionalUtils";
+import { useContextDispatch } from "src/reducers/reducer";
+import { actionCreators } from "src/reducers/actions";
+import { ProgressSpinner } from "primereact/progressspinner";
 import { ErrorBoundary } from "src/components/shared/ErrorBoundary";
 
 export function RecordingDialog({ time, visible }) {
   const [progress, setProgress] = useState(0);
   const [recordState, setRecordState] = useState(RecordState.NONE);
+  const [isMic, setIsMic] = useState(false);
+  const [isMicError, setIsMicError] = useState(false);
 
-  const [, height] = useScreenSize();
-  const isMobile = height < 705;
-  const isHorizontal = height < 400;
+  const dispatch = useContextDispatch();
+
+  const [width] = useScreenSize();
+  const isMobile = width < 400;
+  const isLaptop = !isMobile && width < 800;
+
+  useEffect(() => {
+    if (!visible && isMicError)
+      dispatch(actionCreators.setMicrophoneStatus(true, isMicError));
+    initMediaStream()
+      .then(() => setIsMic(true))
+      .catch((error) => {
+        setIsMic(false);
+        setIsMicError(error.name);
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible]);
 
   useEffect(() => {
     if (!visible && progress !== 0) {
@@ -23,15 +43,16 @@ export function RecordingDialog({ time, visible }) {
   }, [visible]);
 
   useEffect(() => {
-    if (visible && recordState !== RecordState.START)
+    if (visible && isMic && recordState !== RecordState.START)
       setTimeout(() => {
         setRecordState(RecordState.START);
       });
 
-    if (!visible && recordState === RecordState.START)
+    if (!visible && recordState === RecordState.START) {
       setRecordState(RecordState.STOP);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visible]);
+  }, [visible, isMic]);
 
   useEffect(() => {
     if (!visible) return;
@@ -57,14 +78,30 @@ export function RecordingDialog({ time, visible }) {
       headers: { "Content-Type": "multipart/form-data" },
     });
     setProgress(0);
+    setIsMic(false);
   };
+
+  // useEffect(() => {
+  //   const formData = new FormData();
+  //   formData.append("audio", "true");
+  //   formData.append("chunk", new Blob(["mock"]));
+  //   const interval = setInterval(() => {
+  //     axios.post("/verification", formData, {
+  //       headers: { "Content-Type": "multipart/form-data" },
+  //     });
+  //   }, 500);
+
+  //   return () => {
+  //     clearInterval(interval);
+  //   };
+  // }, []);
 
   const micModal = useRef(null);
 
   return (
     <>
       <Dialog
-        position={isHorizontal ? "left" : isMobile ? "top" : undefined}
+        position={isLaptop ? "left" : isMobile ? "top" : undefined}
         closeOnEscape={false}
         closable={false}
         header="Подождите"
@@ -78,7 +115,7 @@ export function RecordingDialog({ time, visible }) {
         visible={visible}
         style={{
           minWidth: "200px",
-          width: isHorizontal ? "50vw" : isMobile ? "100vw" : "50vw",
+          width: isLaptop ? "50vw" : isMobile ? "100vw" : "50vw",
         }}
         baseZIndex={1000}
         onHide={() => {}}
@@ -93,27 +130,39 @@ export function RecordingDialog({ time, visible }) {
         closeOnEscape={false}
         closable={false}
         baseZIndex={1001}
-        position={!isHorizontal && isMobile ? "bottom" : "bottom-right"}
+        position={!isLaptop && isMobile ? "bottom" : "bottom-right"}
         visible={visible}
         onHide={() => {}}
         modal={false}
         style={{
           minWidth: "200px",
-          width: isHorizontal ? "50vw" : isMobile ? "100vw" : "20vw",
-          height: isHorizontal ? "100vh" : isMobile ? "50vh" : "20vh",
+          width: isLaptop ? "50vw" : isMobile ? "100vw" : "20vw",
+          height: isLaptop ? "100vh" : isMobile ? "50vh" : "20vh",
           minHeight: "110px",
         }}
       >
-        <ErrorBoundary message="Проблема с получением контекста микрофона">
-          {/* @ts-ignore */}
-          <AudioReactRecorder
-            backgroundColor="white"
-            canvasWidth={micModal.current?.contentEl?.clientWidth - 50}
-            canvasHeight={micModal.current?.dialogEl?.clientHeight - 84}
-            state={recordState}
-            onStop={stopRecordingHandler}
-          />
-        </ErrorBoundary>
+        {isMicError ? (
+          <div>
+            <span
+              className="pi pi-times"
+              style={{ color: "var(--primary-color)" }}
+            />{" "}
+            Проблема с получением контекста микрофона{" "}
+          </div>
+        ) : isMic ? (
+          <ErrorBoundary>
+            {/* @ts-ignore */}
+            <AudioReactRecorder
+              backgroundColor="white"
+              canvasWidth={micModal.current?.contentEl?.clientWidth - 50 || 0}
+              canvasHeight={micModal.current?.dialogEl?.clientHeight - 84 || 0}
+              state={recordState}
+              onStop={stopRecordingHandler}
+            />
+          </ErrorBoundary>
+        ) : (
+          <ProgressSpinner style={{ width: "100%", height: "100%" }} />
+        )}
       </Dialog>
     </>
   );

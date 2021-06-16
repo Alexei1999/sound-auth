@@ -9,6 +9,9 @@ module.exports = {
     url: null,
     port: "<frontend port>",
   },
+  session: {
+    key: "<session key>",
+  },
   ngrok: "<ngrok token>",
   twilio: {
     number: "<twilio number>",
