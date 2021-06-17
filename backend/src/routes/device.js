@@ -17,24 +17,28 @@ router.get("/token", (req, res) => {
 });
 
 router.get("/device-status", (req, res) => {
-  globalEmitter.emit(EVENTS.SYSTEM.NAME, EVENTS.SYSTEM.GET_DEVICE);
+  globalEmitter.emit(
+    EVENTS.SYSTEM.NAME,
+    req.sessionID,
+    EVENTS.SYSTEM.GET_DEVICE
+  );
   res.sendStatus(204);
 });
 
 router.post("/device-status", (req, res) => {
   const { isReady, deviceName } = req.body;
 
+  const newStatus = isReady ? STATUS.RESULT.SUCCESS : STATUS.RESULT.FAILRUE;
+
   // @ts-ignore
-  req.session.deviceStatus = isReady
-    ? STATUS.RESULT.SUCCESS
-    : STATUS.RESULT.FAILRUE;
+  req.session.deviceStatus = newStatus;
   // @ts-ignore
   req.session.deviceName = deviceName;
   res.sendStatus(204);
 
-  emitDevice({
+  emitDevice(req.sessionID, {
     key: "WebRTC",
-    deviceStatus: isReady ? STATUS.RESULT.SUCCESS : STATUS.RESULT.FAILRUE,
+    deviceStatus: newStatus,
     deviceName,
   });
 });
@@ -56,7 +60,7 @@ router.post(
 router.get("/device-emitter", async (req, res) => {
   return emitHandler(req, res, () => {
     console.log("disable divace");
-    emitDevice({
+    emitDevice(req.sessionID, {
       key: "WebRTC",
       deviceStatus: null,
       deviceName: null,

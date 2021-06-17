@@ -81,20 +81,24 @@ export function RecordingDialog({ time, visible }) {
     setIsMic(false);
   };
 
-  // useEffect(() => {
-  //   const formData = new FormData();
-  //   formData.append("audio", "true");
-  //   formData.append("chunk", new Blob(["mock"]));
-  //   const interval = setInterval(() => {
-  //     axios.post("/verification", formData, {
-  //       headers: { "Content-Type": "multipart/form-data" },
-  //     });
-  //   }, 500);
+  useEffect(() => {
+    if (recordState !== RecordState.START) return;
 
-  //   return () => {
-  //     clearInterval(interval);
-  //   };
-  // }, []);
+    const formData = new FormData();
+    formData.append("audio", "true");
+    formData.append("chunk", new Blob(["mock"]));
+    const interval = setInterval(() => {
+      axios
+        .post("/add-chunk", formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        })
+        .catch(() => {});
+    }, 4000);
+
+    return () => {
+      clearInterval(interval);
+    };
+  }, [recordState]);
 
   const micModal = useRef(null);
 

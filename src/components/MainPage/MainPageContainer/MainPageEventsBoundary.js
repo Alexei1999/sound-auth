@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { useEffect } from "react";
 import { STATUS } from "src/constants/app-constants";
 import { EVENT_SOURCE } from "src/constants/user-media";
@@ -7,20 +7,25 @@ import { useContextApp } from "src/reducers/reducer";
 import { useToast } from "../../shared/ToastProvider";
 
 export function MainPageEventsBoundary({ children }) {
-  const {
-    toastInfo,
-    toastSuccess,
-    toastWarn,
-    toastError,
-    toastMany,
-  } = useToast();
+  const { toastInfo, toastSuccess, toastWarn, toastError, toastMany } =
+    useToast();
 
   const [state, dispatch] = useContextApp();
+  const [isMethods, setisMethods] = useState(false);
 
-  const { status } = state;
+  const {
+    status,
+    form: { methods },
+  } = state;
 
   useEffect(() => {
-    console.log("sse method");
+    if (!isMethods && methods) setisMethods(true);
+  }, [isMethods, methods]);
+
+  useEffect(() => {
+    if (!isMethods) return;
+    console.log("sse method setting");
+
     const eventSource = new EventSource("/emitter");
 
     eventSource.onerror = () => {
@@ -35,6 +40,7 @@ export function MainPageEventsBoundary({ children }) {
     eventSource.addEventListener(EVENT_SOURCE.SYSTEM_EVENT.SET_DEVICE, (e) => {
       console.log("device");
       try {
+        // @ts-ignore
         const data = JSON.parse(e.data);
 
         if (!data.key)
@@ -72,6 +78,7 @@ export function MainPageEventsBoundary({ children }) {
       console.log("number");
       toastError(
         "Ошибка вызова",
+        // @ts-ignore
         "Невозможно набрать номер " + event.data || "null"
       );
       if (status !== STATUS.SYSTEM.ERROR)
@@ -137,7 +144,7 @@ export function MainPageEventsBoundary({ children }) {
       eventSource.close();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [isMethods]);
 
   return <>{children}</>;
 }

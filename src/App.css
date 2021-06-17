@@ -128,3 +128,9 @@ body {
     transform: rotate(0deg);
   }
 }
+
+.p-button-label {
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+}

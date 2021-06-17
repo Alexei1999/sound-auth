@@ -5,7 +5,13 @@ const { getHandlers } = require("./event-hanlder");
 module.exports.emitHandler = async (req, res, callback) => {
   let id = 0;
 
-  const { callEventHandler, systemEventHandler } = getHandlers(res, id);
+  const { callEventHandler, systemEventHandler } = getHandlers(
+    res,
+    id,
+    req.sessionID,
+    req.session.user_id,
+    req.session,
+  );
 
   res.writeHead(200, {
     "Content-Type": "text/event-stream; charset=utf-8",
@@ -13,7 +19,7 @@ module.exports.emitHandler = async (req, res, callback) => {
     Connection: "keep-alive",
   });
 
-  console.log("opened");
+  console.log("handler opened -> ", req.sessionID);
   res.write(`event: open\ndata: open\nid: ${id++}\n\n`);
 
   const healthChecker = setInterval(() => {

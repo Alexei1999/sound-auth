@@ -24,9 +24,16 @@ const upload = multer({
   }),
 });
 
+router.post("/add-chunk", (req, res) => {
+  console.log("add-chunk sessionID -> ", req.sessionID);
+  console.log("add-chunk session -> ", req.session);
+  res.sendStatus(200).end();
+});
+
 router.post("/verification", upload.single("file"), async (req, res) => {
   // const path = req.file.path;
   console.log("verification");
+
   const pitches = await recognisePitches(
     path.resolve(__dirname, "../../public/audio.wav")
   );
@@ -45,13 +52,14 @@ router.post("/verification", upload.single("file"), async (req, res) => {
     : STATUS.RESULT.FAILRUE;
 
   // @ts-ignore
-  emitStatus(req.session);
+  emitStatus(req.sessionID, req.session);
 
   res.sendStatus(200).end();
 });
 
 router.post("/auth", async (req, res) => {
-  console.log("auth");
+  console.log("auth session -> ", req.sessionID);
+  console.log("body -> ", req.body);
   const { key, id } = req.body ?? {};
 
   if (!key) return res.sendStatus(400).end();
@@ -63,22 +71,34 @@ router.post("/auth", async (req, res) => {
   // @ts-ignore
   req.session.user_id = id;
 
+  res.sendStatus(200).end();
   try {
     switch (key) {
       case "jsm":
         twillioJsm(id, `${config.back.url}/song.wav`);
         break;
       case "WebRTC":
-        emitCallStatus({ status: STATUS.CALL.INITIATED, called: id });
-        globalEmitter.emit(EVENTS.SYSTEM.NAME, EVENTS.SYSTEM.TRIGGER_CALL);
+        emitCallStatus(req.sessionID, {
+          status: STATUS.CALL.INITIATED,
+          called: id,
+        });
+        globalEmitter.emit(
+          EVENTS.SYSTEM.NAME,
+          req.sessionID,
+          EVENTS.SYSTEM.TRIGGER_CALL
+        );
         break;
       default:
         break;
     }
   } catch (e) {
-    res.sendStatus(500);
+    globalEmitter.emit(
+      EVENTS.SYSTEM.NAME,
+      req.sessionID,
+      EVENTS.SYSTEM.MESSAGE,
+      "Метод не зарегестрирован"
+    );
   }
-  res.sendStatus(200);
 });
 
 module.exports = router;

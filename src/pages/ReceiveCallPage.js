@@ -16,6 +16,7 @@ export function ReceiveCallPage() {
   const [isInProgress, setIsInProgress] = useState(false);
   const [isCriticalShowed, setIsCriticialShowed] = useState(false);
 
+  const tokenName = useRef(null);
   const isReady = useRef(false);
   const deviceRef = useRef(null);
 
@@ -59,7 +60,7 @@ export function ReceiveCallPage() {
       if (isReady.current) deviceRef.current?.connect();
       else {
         axios.post("/webhook", {
-          Called: "device",
+          Called: tokenName.current,
           CallStatus: EVENT_SOURCE.CALL_EVENT.ERROR,
         });
         toast.current?.show({
@@ -71,9 +72,14 @@ export function ReceiveCallPage() {
     });
 
     eventSource.addEventListener(EVENT_SOURCE.SYSTEM_EVENT.GET_DEVICE, () => {
+      console.log(
+        "Device status request handled -> ",
+        isReady.current,
+        tokenName.current
+      );
       axios.post("/device-status", {
         isReady: isReady.current,
-        deviceName: "caller",
+        deviceName: tokenName.current,
       });
     });
 
@@ -101,7 +107,7 @@ export function ReceiveCallPage() {
     } else isReady.current = false;
     axios.post("/device-status", {
       isReady: isReady.current,
-      deviceName: "caller",
+      deviceName: tokenName.current,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [deviceStatus, mediaStatus, eventsStatus]);
@@ -122,6 +128,7 @@ export function ReceiveCallPage() {
     axios.get("/token").then(({ data }) => {
       setTokenStatus(CONNECT_STATUS.CONNECTED);
       setDeviceStatus(CONNECT_STATUS.REQUESTING);
+      tokenName.current = data.token?.substr(-30);
       const device = new Device(data.token, {
         appName: "caller",
         // @ts-ignore
@@ -144,7 +151,7 @@ export function ReceiveCallPage() {
         setIsInProgress(true);
         console.log("Successfully established call!");
         axios.post("/webhook", {
-          Called: "device",
+          Called: tokenName.current,
           CallStatus: EVENT_SOURCE.CALL_EVENT.IN_PROGRESS,
         });
       });
@@ -153,6 +160,7 @@ export function ReceiveCallPage() {
         console.log("Successfully disconnected call!");
       });
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (

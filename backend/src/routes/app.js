@@ -13,6 +13,7 @@ router.get("/health-check", (req, res) => {
 });
 
 router.get("/methods", async (req, res) => {
+  console.log("methods session -> ", req.sessionID);
   res.json(
     methods.map((method) => ({ ...method, ...views(req.session)[method.key] }))
   );
@@ -22,10 +23,10 @@ router.get("/get-status", async (req, res) => {
   console.log("emit status");
 
   // @ts-ignore
-  if (!req.session.call_status) globalEmitter.emit(null);
+  if (!req.session.call_status) globalEmitter.emit(null, req.sessionID);
 
   // @ts-ignore
-  emitStatus(req.session);
+  emitStatus(req.sessionID, req.session);
 
   res.sendStatus(200).end();
 });
@@ -36,7 +37,7 @@ router.post("/webhook", async (req, res) => {
   let called = req.body.Called;
   let status = req.body.CallStatus;
 
-  emitCallStatus({ status, called });
+  emitCallStatus(req.sessionID, { status, called });
   res.status(204).send();
 });
 
