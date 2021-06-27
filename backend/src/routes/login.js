@@ -27,7 +27,7 @@ const upload = multer({
 router.post("/add-chunk", (req, res) => {
   console.log("add-chunk sessionID -> ", req.sessionID);
   console.log("add-chunk session -> ", req.session);
-  res.sendStatus(200).end();
+  res.sendStatus(200);
 });
 
 router.post("/verification", upload.single("file"), async (req, res) => {
@@ -54,7 +54,7 @@ router.post("/verification", upload.single("file"), async (req, res) => {
   // @ts-ignore
   emitStatus(req.sessionID, req.session);
 
-  res.sendStatus(200).end();
+  res.sendStatus(200);
 });
 
 router.post("/auth", async (req, res) => {
@@ -62,7 +62,7 @@ router.post("/auth", async (req, res) => {
   console.log("body -> ", req.body);
   const { key, id } = req.body ?? {};
 
-  if (!key) return res.sendStatus(400).end();
+  if (!key) return res.sendStatus(400);
 
   // @ts-ignore
   req.session.target = generatePitch();
@@ -71,7 +71,8 @@ router.post("/auth", async (req, res) => {
   // @ts-ignore
   req.session.user_id = id;
 
-  res.sendStatus(200).end();
+  res.sendStatus(200);
+
   try {
     switch (key) {
       case "jsm":

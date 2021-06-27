@@ -28,12 +28,14 @@ router.get("/get-status", async (req, res) => {
   // @ts-ignore
   emitStatus(req.sessionID, req.session);
 
-  res.sendStatus(200).end();
+  res.sendStatus(200);
 });
 
 router.get("/emitter", emitHandler);
 
 router.post("/webhook", async (req, res) => {
+  
+
   let called = req.body.Called;
   let status = req.body.CallStatus;
 

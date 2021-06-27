@@ -2,19 +2,7 @@ const { EVENTS } = require("../constants/login");
 
 module.exports.getHandlers = (res, id, currentSessionId, userId, session) => ({
   callEventHandler: (sessionId, name, data) => {
-    console.log(
-      "siska",
-      "target sessionId -> ",
-      sessionId,
-      "current sessionId -> ",
-      currentSessionId,
-      "current data -> ",
-      userId,
-      "target data -> ",
-      data,
-      "current session -> ",
-      session
-    );
+    //FIXME: Event source prevents rewriting session
     // if (currentSessionId !== sessionId) {
     //   console.log("!!!", currentSessionId, sessionId);
     //   console.log(`blocked event: ${name}\ndata: ${data}\nid: ${id++}\n\n`);
