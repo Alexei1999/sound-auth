@@ -11,7 +11,7 @@ const appRoutes = require("./src/routes/app");
 const deviceRoutes = require("./src/routes/device");
 
 const HOST = "http://localhost";
-const PORT = "<backend port>";
+const PORT = 8080;
 const app = express();
 
 app.use(express.static(path.join(__dirname, "public")));
